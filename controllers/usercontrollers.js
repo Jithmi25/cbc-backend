@@ -58,3 +58,12 @@ export function LoginUser(req, res) {
             return res.status(500).json({ message: "Internal Server Error." });
         });
 }
+export function deleteUser(res,req){
+user.deleteone({email:req.body.email}).then(
+    ()=>{
+        res.json({
+            message:"User Deleted."
+        })
+    }
+)
+}
