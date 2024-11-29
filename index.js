@@ -5,9 +5,12 @@ import productRoutes from './routes/productsroutes.js';
 import userRoutes from './routes/userroutes.js';
 import jwt from "jsonwebtoken";
 
-const app = express();
-const mongoUrl="mongodb+srv://magicinmace:123@cluster0.0ssx5.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+import dotenv from "dotenv";
+dotenv.config()
 
+const app = express();
+//const mongoUrl="mongodb+srv://magicinmace:123@cluster0.0ssx5.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+const mongoUrl=process.env.MONGO_DB_URL
 mongoose.connect(mongoUrl, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -25,27 +28,13 @@ mongoose.connect(mongoUrl, {
   });
 
 app.use(bodyParser.json())
-/*app.use(
-    (req,res,next)=>{
-        const token=req.header("Authorization")?.replace("Bearer","")
-       console.log(token)
-        if (token != null) {
-            jwt.verify(token,"cbc-secret-key-1234", (error, decoded) => {
-                if (!error) {
-                    console.log(decoded)
-                    req.user = decoded
-                }
-            });
-        }
-        next()
-    }
-)*/
+
 app.use((req, res, next) => {
     const token = req.header("Authorization")?.replace("Bearer ", "").trim();
     console.log("Token received:", token);
 
     if (token!==null) {
-        jwt.verify(token, "cbc-secret-key-1234", (error, decoded) => {
+        jwt.verify(token, process.env.SECRET, (error, decoded) => {
             if (!error) {
                 console.log(decoded)
                 req.user = decoded
@@ -59,19 +48,6 @@ app.use((req, res, next) => {
 
 app.use("/api/products",productRoutes)
 app.use("/api/user",userRoutes)
-
-/*app.get("/",
-    (req,res)=>{
-        console.log(req);
-        console.log("hello world1");
-        res.json(
-            {
-                message:"Hello" + req.body.name
-            }
-        );
-    }
-);*/
-
 
 app.listen(
     3000,
