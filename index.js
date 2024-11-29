@@ -9,7 +9,6 @@ import dotenv from "dotenv";
 dotenv.config()
 
 const app = express();
-//const mongoUrl="mongodb+srv://magicinmace:123@cluster0.0ssx5.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 const mongoUrl=process.env.MONGO_DB_URL
 mongoose.connect(mongoUrl, {
     useNewUrlParser: true,
