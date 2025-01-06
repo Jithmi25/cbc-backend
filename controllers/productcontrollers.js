@@ -1,36 +1,35 @@
-import product  from "../models/product.js";
-import product from "../models/product.js";
+import Product from "../models/product.js";
 import { isAdmin } from "./usercontrollers.js";
 
-export function createProduct(req,res) { 
+export async function createProduct(req, res) {
+    const newProductData = req.body;
 
-    const newProductData = req.body 
-
-    if(!isAdmin(req)){
-        res.json({
+    if (!isAdmin(req)) {
+        return res.status(401).json({
             message:"Please Login as Administrator to add Product."
-        })
-        return
+        });
     }
 
-    const product =  new product (newProductData)
-    
-    product.save().then(
-        ()=>{
-            res.json({
-                message : "Product Created."
-            })
-        }
-    ).catch((error)=>{
-        res.json({
-            message : error
-        })
-    })
+    try {
+        const newProduct = new Product(newProductData);
+        await newProduct.save();
+        res.status(201).json({
+            message: "Product Created."
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: error.message || "An error occurred while creating the product."
+        });
+    }
 }
- 
-export function getProducts(req,res) {
-    product.find({}).then((product) =>
-    {
-        res.json(product)
-    })
+
+export async function getProducts(req, res) {
+    try {
+        const products = await Product.find({});
+        res.status(200).json(products);
+    } catch (error) {
+        res.status(500).json({
+            message: error.message || "An error occurred while fetching products."
+        });
+    }
 }

@@ -1,108 +1,91 @@
-import user from "../models/user.js";
+import User from "../models/user.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-dotenv.config()
+dotenv.config();
 
-export function createUser (req, res)  {
+export function createUser(req, res) {
+    const newUserData = req.body;
 
-    const newUserData=req.body
-    newUserData.password=bcrypt.hashSync(newUserData.password,10)
-
-    const newUser = new user(newUserData);
-    newUser.save().then(() => {
-            res.json({
-                message: "user Created."
+    // Check if the user type is admin and validate req.user
+    if (newUserData.type === "admin") {
+        if (!req.user || req.user.type !== "admin") {
+            return res.status(401).json({
+                message: "Please Login as Administrator to create admin accounts."
             });
+        }
+    }
+
+    // Hash password
+    newUserData.password = bcrypt.hashSync(newUserData.password, 10);
+
+    // Save user
+    const newUser = new User(newUserData);
+    newUser.save()
+        .then(() => {
+            res.status(201).json({ message: "User Created." });
         })
-        .catch((err) => { 
-            res.json({
-                message: "Error creating user",
-                error: err.message 
+        .catch((err) => {
+            res.status(500).json({
+                message: "Error creating user.",
+                error: "An error occurred while creating the user."
             });
         });
-
-    if(newUserData.type == "admin"){
-        if(req.user==null){
-            res.json({
-                message:"Please Login as Administrator to create admin accounts."
-            })
-            return
-        }
-        if(req.user.type!="admin"){
-            res.json({
-                message:"Please Login as Administrator to create admin accounts."
-            })
-            return
-        }
-    }    
 }
 
 export function LoginUser(req, res) {
-    user.find({ email: req.body.email })
-        .then((users) => {
-            if (users.length === 0) {
+    User.findOne({ email: req.body.email })
+        .then((foundUser) => {
+            if (!foundUser) {
                 return res.status(404).json({ message: "Email Not Found." });
             }
 
-            const foundUser = users[0]; // Renamed to avoid shadowing.
-            const isPasswordCorrect = bcrypt.compareSync(
-                req.body.password,
-                foundUser.password
-            );
-
+            // Verify password
+            const isPasswordCorrect = bcrypt.compareSync(req.body.password, foundUser.password);
             if (isPasswordCorrect) {
-                
-                const token=jwt.sign({
-                    email:user.email,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    isBlocked: user.isBlocked,
-                    type:user.type,
-                    profilePic: user.profilePic
-            },process.env.SECRET)
-                return res.status(200).json
-                ({ 
-                    message: "User Login Successful." ,
-                    token:token
-                });
+                const token = jwt.sign(
+                    {
+                        email: foundUser.email,
+                        firstName: foundUser.firstName,
+                        lastName: foundUser.lastName,
+                        isBlocked: foundUser.isBlocked,
+                        type: foundUser.type,
+                        profilePic: foundUser.profilePic
+                    },
+                    process.env.SECRET
+                );
+                return res.status(200).json({ message: "User Login Successful.", token });
             } else {
                 return res.status(401).json({ message: "Incorrect password." });
             }
         })
         .catch((err) => {
-            console.error(err); // Log error for debugging.
+            console.error(err);
             return res.status(500).json({ message: "Internal Server Error." });
         });
 }
-export function deleteUser(res,req){
-user.deleteone({email:req.body.email}).then(
-    ()=>{
-        res.json({
-            message:"User Deleted."
+
+export function deleteUser(req, res) {
+    User.deleteOne({ email: req.body.email })
+        .then(() => {
+            res.status(200).json({ message: "User Deleted." });
         })
-    }
-)
+        .catch((err) => {
+            res.status(500).json({ message: "Error deleting user.", error: err.message });
+        });
 }
 
-// "email": "wickjitha@gmail.com","password": "secure",- admin 
-// "email": "wickjitha123@gmail.com","password": "123",- customer
-
-export function isAdmin(req){
-    if(req.user==null){
-        return false
+// 
+export function isAdmin(req) {
+    if (!req.user || req.user.type !== "admin") {
+        return false;
     }
-    if(req.user.type != "admin"){
-        return false
-    }
-    return true
+    return true;
 }
-export function isCustomer(req){
-    if(req.user==null){
-        return false
+
+export function isCustomer(req) {
+    if (!req.user || req.user.type !== "customer") {
+        return false;
     }
-    if(req.user.type != "customer"){
-        return false
-    }
-    return true
+    return true;
 }
