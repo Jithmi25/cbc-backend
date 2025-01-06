@@ -1,6 +1,7 @@
 import order from "../models/order.js";
 import Order from "../models/order.js"; 
 import { isCustomer } from "./usercontrollers.js"; 
+import { isAdmin } from "./usercontrollers.js";
 
 export async function createOrder(req, res) {
     if (!isCustomer(req)) {
@@ -47,7 +48,6 @@ export async function createOrder(req, res) {
         });
     }
 }
-
 export async function getOrders(req, res) {
     // Check if the user is an admin
     if (!isAdmin(req)) {
@@ -57,9 +57,10 @@ export async function getOrders(req, res) {
     }
 
     try {
-        const orders = await order.find({});
+        const orders = await Order.find({});
         res.status(200).json(orders);
     } catch (error) {
+        console.error("Error fetching orders:", error);
         res.status(500).json({
             message: error.message || "An error occurred while fetching orders."
         });
