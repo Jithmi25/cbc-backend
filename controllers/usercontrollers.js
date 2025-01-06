@@ -23,7 +23,18 @@ export function createUser (req, res)  {
         });
 
     if(newUserData.type == "admin"){
-        
+        if(req.user==null){
+            res.json({
+                message:"Please Login as Administrator to create admin accounts."
+            })
+            return
+        }
+        if(req.user.type!="admin"){
+            res.json({
+                message:"Please Login as Administrator to create admin accounts."
+            })
+            return
+        }
     }    
 }
 
@@ -72,4 +83,26 @@ user.deleteone({email:req.body.email}).then(
         })
     }
 )
+}
+
+// "email": "wickjitha@gmail.com","password": "secure",- admin 
+// "email": "wickjitha123@gmail.com","password": "123",- customer
+
+export function isAdmin(req){
+    if(req.user==null){
+        return false
+    }
+    if(req.user.type != "admin"){
+        return false
+    }
+    return true
+}
+export function isCustomer(req){
+    if(req.user==null){
+        return false
+    }
+    if(req.user.type != "customer"){
+        return false
+    }
+    return true
 }
