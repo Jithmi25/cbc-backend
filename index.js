@@ -1,7 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
-import productRoutes from './routes/productsroutes.js';
 import userRoutes from './routes/userroutes.js';
 import jwt from "jsonwebtoken";
 
@@ -46,7 +45,6 @@ app.use((req, res, next) => {
     }
 });
 
-app.use("/api/products",productRoutes)
 app.use("/api/user",userRoutes)
 
 app.listen(

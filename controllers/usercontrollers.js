@@ -21,6 +21,10 @@ export function createUser (req, res)  {
                 error: err.message 
             });
         });
+
+    if(newUserData.type == "admin"){
+        
+    }    
 }
 
 export function LoginUser(req, res) {
