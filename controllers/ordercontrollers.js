@@ -1,53 +1,132 @@
-import order from "../models/order.js";
 import Order from "../models/order.js"; 
+import product from "../models/product.js";
+import Product from "../models/product.js"; 
 import { isCustomer } from "./usercontrollers.js"; 
-import { isAdmin } from "./usercontrollers.js";
+import { isAdmin } from "./usercontrollers.js"; 
 
 export async function createOrder(req, res) {
+    // Check if the user is a customer
     if (!isCustomer(req)) {
         return res.status(401).json({
-            message: "Please Login as Customer to Order Product."
+            message: "Please Login as Customer to Order Product.",
         });
     }
 
     try {
-        // Fetch the latest order by date
+        // Fetch the latest order by date to generate a new unique order ID
         const latestOrder = await Order.find().sort({ date: -1 }).limit(1);
-
         let orderId;
 
         if (latestOrder.length === 0) {
-            orderId = "CBC001";
+            orderId = "CBC001"; // First order ID if no orders exist
         } else {
             const currentOrderId = latestOrder[0].orderId;
-
-            // Extract the numeric part of the order ID
-            const numberString = currentOrderId.replace("CBC", "").trim();
-            const number = parseInt(numberString, 10);
-
-            // Increment the numeric part and format it as a 4-digit string
-            const newNumber = (number + 1).toString().padStart(4, "0");
-            orderId = "CBC" + newNumber;
+            const numberString = currentOrderId.replace("CBC", "").trim(); // Extract numeric part
+            const number = parseInt(numberString, 10); // Convert to integer
+            const newNumber = (number + 1).toString().padStart(4, "0"); // Increment and format
+            orderId = "CBC" + newNumber; // Generate new order ID
         }
 
-        // Create a new order
+        // Validate and process order data
         const newOrderData = req.body;
-        newOrderData.orderId = orderId;
-        newOrderData.email = req.user.email;
+        if (!newOrderData || !newOrderData.orderedItems || !Array.isArray(newOrderData.orderedItems)) {
+            return res.status(400).json({
+                message: "Invalid order data.",
+            });
+        }
 
+        const newProductArray = []; // To hold validated product details
+        const orderedItems = newOrderData.orderedItems;
+
+        for (let i = 0; i < orderedItems.length; i++) {
+            const foundProduct = await Product.findOne({
+                productId: orderedItems[i].productId, // Search for product by productId
+            });
+
+            if (!foundProduct) {
+                return res.status(404).json({
+                    message: `Product with Id ${orderedItems[i].productId} not found.`,
+                });
+            }
+
+            // Add product details to newProductArray
+            newProductArray.push({
+                productName: foundProduct.productName,
+                price: foundProduct.price,
+                quantity: orderedItems[i].quantity,
+                image: Array.isArray(foundProduct.image) && foundProduct.image.length > 0 
+                    ? foundProduct.image[0] 
+                    : null, // Use null or a default value if no image is available
+            });
+        }
+
+        const updateStock = async (req, res) => {
+            try {
+                const orderedItems = req.body.orderedItems; // Array of { productId, quantity }
+        
+                for (let j = 0; j < orderedItems.length; j++) {
+                    const { productId, quantity } = orderedItems[j];
+        
+                    // Find the product by ID
+                    const product = await Product.findById(productId);
+        
+                    if (!product) {
+                        return res.status(404).json({
+                            message: `Product with ID ${productId} not found.`,
+                        });
+                    }
+        
+                    // Check if sufficient stock exists
+                    if (product.stockCount < quantity) {
+                        return res.status(400).json({
+                            message: `Sorry! Product '${product.name}' is out of stock. Stay with us.`,
+                        });
+                    }
+        
+                    // Deduct the ordered quantity from the stock
+                    product.stockCount -= quantity;
+        
+                    // Save the updated product
+                    await product.save();
+                }
+        
+                return res.status(200).json({
+                    message: 'Stock updated successfully!',
+                });
+            } catch (error) {
+                console.error(error);
+                return res.status(500).json({
+                    message: 'An error occurred while updating stock.',
+                });
+            }
+        };
+        
+
+        console.log(newProductArray); 
+
+        newOrderData.orderedItems = newProductArray
+
+        newOrderData.orderId = orderId; // Assign generated order ID
+        newOrderData.email = req.user.email; // Assign customer email
+        newOrderData.products = newProductArray; // Add validated product details to the order
+
+        // Save the new order in the database
         const newOrder = new Order(newOrderData);
-
         await newOrder.save();
 
-        res.json({
-            message: "Order created."
+        res.status(201).json({
+            message: "Order created successfully.",
+            orderId: newOrder.orderId,
         });
     } catch (error) {
+        // Handle unexpected errors
         res.status(500).json({
-            message: error.message || "An error occurred while ordering the product."
+            message: error.message || "An error occurred while ordering the product.",
         });
     }
 }
+
+
 export async function getOrders(req, res) {
     // Check if the user is an admin
     if (!isAdmin(req)) {
