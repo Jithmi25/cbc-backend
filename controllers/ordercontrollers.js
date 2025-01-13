@@ -145,3 +145,60 @@ export async function getOrders(req, res) {
         });
     }
 }
+
+export async function returnItem(req, res) {
+    try {
+        const { orderId, returnItem } = req.body;
+
+        // Check if the user is a customer
+        if (!req.user || req.user.role !== "customer") {
+            return res.status(403).json({ message: "Access denied. Only customers can return items." });
+        }
+
+        // Validate input
+        if (!orderId || !returnItem || !returnItem.name || !returnItem.quantity) {
+            return res.status(400).json({ message: "Missing return details. Please provide all required fields." });
+        }
+
+        // Find the order in the database
+        const order = await Order.findOne({ orderId, email: req.user.email });
+
+        if (!order) {
+            return res.status(404).json({ message: "Order not found or doesn't belong to the customer." });
+        }
+
+        // Check if the product exists in the original order
+        const orderedItem = order.orderedItems.find(item => item.name === returnItem.name);
+
+        if (!orderedItem) {
+            return res.status(404).json({ message: `Item '${returnItem.name}' was not part of the order.` });
+        }
+
+        // Check if the quantity is valid
+        if (returnItem.quantity > orderedItem.quantity) {
+            return res.status(400).json({
+                message: `Invalid return quantity. You can only return up to ${orderedItem.quantity} of '${returnItem.name}'.`,
+            });
+        }
+
+        // Add the return item details to the order's returnItem array
+        order.returnItem.push({
+            ...returnItem,
+            date: Date.now(),
+            status: "Pending",
+        });
+
+        // Save the updated order
+        await order.save();
+
+        return res.status(200).json({
+            message: "Return request submitted successfully.",
+            returnItem: order.returnItem[order.returnItem.length - 1],
+        });
+    } catch (error) {
+        console.error("Error processing return request:", error);
+        return res.status(500).json({
+            message: "An error occurred while processing the return request. Please try again.",
+        });
+    }
+}
