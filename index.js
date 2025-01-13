@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import userRoutes from './routes/userroutes.js';
 import productRouters from './routes/productroutes.js';
 import jwt from "jsonwebtoken";
+import cors from "cors";
 
 import dotenv from "dotenv";
 import orderRouter from './routes/orderroutes.js';
@@ -27,6 +28,8 @@ mongoose.connect(mongoUrl, {
   db.once("open", () => {
     console.log("Database connected.");
   });
+
+app.use(cors())
 
 app.use(bodyParser.json())
 
