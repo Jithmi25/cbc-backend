@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
+import user from "../models/user.js";
 
 dotenv.config();
 
@@ -56,7 +57,17 @@ export function LoginUser(req, res) {
                     },
                     process.env.SECRET
                 );
-                return res.status(200).json({ message: "User Login Successful.", token });
+                return res.status(200).json({
+                     message: "User Login Successful.",
+                     token:token ,
+                     user : {
+                        email: foundUser.email,
+                        firstName: foundUser.firstName,
+                        lastName: foundUser.lastName,
+                        type: foundUser.type,
+                        profilePic: foundUser.profilePic
+                     }
+                    });
             } else {
                 return res.status(401).json({ message: "Incorrect password." });
             }
