@@ -35,13 +35,18 @@ export async function getProducts(req, res) {
     }
 }
 
-export async function deleteProduct(req,res) {
-    product.deleteOne({productId: req.body.productId })
-    .then(() => {
-        res.status(200).json({ message: "Product Deleted." });
-    })
-    .catch((err) => {
-        res.status(500).json({ message: "Error deleting product.", error: err.message });
-    });
-    
-}
+export async function deleteProduct(req, res) {
+    try {
+      const productId = req.params.productId;
+      const result = await product.deleteOne({ productId });
+  
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ message: "Product not found." });
+      }
+  
+      res.status(200).json({ message: "Product deleted successfully." });
+    } catch (err) {
+      res.status(500).json({ message: "Error deleting product.", error: err.message });
+    }
+  }
+  
