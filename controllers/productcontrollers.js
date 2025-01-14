@@ -1,3 +1,4 @@
+import product from "../models/product.js";
 import Product from "../models/product.js";
 import { isAdmin } from "./usercontrollers.js";
 
@@ -32,4 +33,15 @@ export async function getProducts(req, res) {
             message: error.message || "An error occurred while fetching products."
         });
     }
+}
+
+export async function deleteProduct(req,res) {
+    product.deleteOne({productId: req.body.productId })
+    .then(() => {
+        res.status(200).json({ message: "Product Deleted." });
+    })
+    .catch((err) => {
+        res.status(500).json({ message: "Error deleting product.", error: err.message });
+    });
+    
 }
