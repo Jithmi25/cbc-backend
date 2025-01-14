@@ -36,6 +36,12 @@ export async function getProducts(req, res) {
 }
 
 export async function deleteProduct(req, res) {
+    if (!isAdmin(req)) {
+        return res.status(401).json({
+            message:"Please Login as Administrator to delete Product."
+        });
+    }
+
     try {
       const productId = req.params.productId;
       const result = await product.deleteOne({ productId });
